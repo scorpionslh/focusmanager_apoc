@@ -10,7 +10,7 @@ class FocusMultArray {
       Map<int, FocusEntity> list = {};
       for (var j = 0; j < 10; j++) {
         FocusEntity focusEntity = FocusEntity(
-          id: i,
+          id: '${i.toString()}-${j.toString()}',
           name: 'Focus $i',
           description: 'Focus $i description',
           image: 'https://picsum.photos/200/300?random=$i',

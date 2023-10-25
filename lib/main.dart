@@ -2,7 +2,6 @@ import 'package:asp/asp.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:focus_manager/focus_entity.dart';
-import 'package:focus_manager/focus_mult_array.dart';
 
 void main() {
   runApp(const RxRoot(child: MainApp()));
@@ -21,57 +20,65 @@ class _MainAppState extends State<MainApp> {
   int i = 0;
   int j = 0;
   Map<int, Map<int, FocusEntity>> matriz = {};
+  late FocusEntity focusSelected;
 
   @override
   void initState() {
     super.initState();
     ServicesBinding.instance.keyboard.addHandler(_onKey);
 
-    for (var i = 0; i < 10; i++) {
+    for (var y = 0; y < 10; y++) {
       Map<int, FocusEntity> list = {};
-      for (var j = 0; j < 10; j++) {
+      for (var x = 0; x < 10; x++) {
         FocusEntity focusEntity = FocusEntity(
-          id: i,
+          id: '${i.toString()}-${x.toString()}',
           name: 'Focus $i',
           description: 'Focus $i description',
-          image: 'https://picsum.photos/200/300?random=$i',
-          background: 'https://picsum.photos/200/300?random=$i',
+          image: 'https://picsum.photos/200/300?random=$x$y',
+          background: 'https://picsum.photos/200/300?random=$x$y',
           color: '0xFF0000',
         );
-        list[j] = focusEntity;
+        list[x] = focusEntity;
       }
-      matriz.addAll({i: list});
+      matriz.addAll({y: list});
     }
+
+    focusSelected = matriz[eixoX]![eixoY]!;
   }
 
   bool _onKey(KeyEvent event) {
     final key = event.logicalKey.keyLabel;
 
     if (event is KeyDownEvent) {
-      print("Key down: $key");
+      print("Key: $key");
       if (key == 'Arrow Up') {
         if (eixoY > 0) {
-          setState(() {
-            eixoY--;
-          });
+          eixoY--;
+          _selectItem(eixoX, eixoY);
         }
       } else if (key == 'Arrow Down') {
-        if (eixoY < 9) {
-          setState(() {
-            eixoY++;
-          });
+        if (eixoY < matriz.length - 1) {
+          eixoY++;
+          _selectItem(eixoX, eixoY);
         }
       } else if (key == 'Arrow Left') {
         if (eixoX > 0) {
-          setState(() {
-            eixoX--;
-          });
+          eixoX--;
+          _selectItem(eixoX, eixoY);
         }
       } else if (key == 'Arrow Right') {
-        if (eixoX < 9) {
-          setState(() {
-            eixoX++;
-          });
+        if (eixoX < matriz[eixoY]!.length - 1) {
+          eixoX++;
+          _selectItem(eixoX, eixoY);
+        }
+      } else if (key == 'Tab') {
+        if (eixoX < matriz[eixoY]!.length - 1) {
+          eixoX++;
+          _selectItem(eixoX, eixoY);
+        } else {
+          eixoX = 0;
+          eixoY++;
+          _selectItem(eixoX, eixoY);
         }
       }
     } else if (event is KeyUpEvent) {
@@ -89,11 +96,12 @@ class _MainAppState extends State<MainApp> {
     super.dispose();
   }
 
-  _selectItem(int i, int j) {
-    print('i: $i, j: $j');
+  _selectItem(int x, int y) {
+    print('x: $x, y: $y');
     setState(() {
-      eixoX = i;
-      eixoY = j;
+      focusSelected = matriz[x]![y]!;
+      eixoX = x;
+      eixoY = y;
     });
   }
 
@@ -109,32 +117,58 @@ class _MainAppState extends State<MainApp> {
         body: Center(
           child: items.isEmpty
               ? const CircularProgressIndicator()
-              : Wrap(
-                  direction: Axis.horizontal,
-                  children: items.entries
-                      .map((e) => Wrap(
-                            direction: Axis.vertical,
-                            children: e.value.entries
-                                .map((j) => InkWell(
-                                      onTap: () => _selectItem(e.key, j.key),
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          border: Border.all(
-                                            color:
-                                                e.key == eixoX && j.key == eixoY
-                                                    ? Colors.red
-                                                    : Colors.black,
-                                            width: 5,
-                                          ),
-                                        ),
-                                        width: 50,
-                                        height: 50,
-                                        child: Image.network(j.value.image),
-                                      ),
-                                    ))
-                                .toList(),
-                          ))
-                      .toList(),
+              : Stack(
+                  children: [
+                    Positioned(
+                      top: 50,
+                      left: 0,
+                      child: Container(
+                        width: 500,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          image: DecorationImage(
+                            image: NetworkImage(
+                              focusSelected.image,
+                            ),
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 200,
+                      left: 0,
+                      child: Wrap(
+                        direction: Axis.horizontal,
+                        children: items.entries
+                            .map((x) => Wrap(
+                                  direction: Axis.vertical,
+                                  children: x.value.entries
+                                      .map((y) => InkWell(
+                                            onTap: () =>
+                                                _selectItem(x.key, y.key),
+                                            child: Container(
+                                              decoration: BoxDecoration(
+                                                border: Border.all(
+                                                  color: x.key == eixoX &&
+                                                          y.key == eixoY
+                                                      ? Colors.red
+                                                      : Colors.black,
+                                                  width: 5,
+                                                ),
+                                              ),
+                                              width: 50,
+                                              height: 50,
+                                              child:
+                                                  Image.network(y.value.image),
+                                            ),
+                                          ))
+                                      .toList(),
+                                ))
+                            .toList(),
+                      ),
+                    )
+                  ],
                 ),
         ),
       ),
